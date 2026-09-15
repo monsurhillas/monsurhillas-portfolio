@@ -40,16 +40,40 @@ still renders correctly.
 
 ## Editing content
 
-Sign in at `/admin` with the Google account `hillasmonsur@gmail.com` to
-add, edit, or delete any section of the site (profile, experience,
-education, skills, awards, projects, research) through a CRUD UI. Any other
-Google account is rejected both by the UI and by the database itself.
+Sign in at `/admin` with the Google account `hillasmonsur@gmail.com` for a
+sidebar of admin sections, each restricted to that one account both in the
+UI and in the database (Row Level Security):
+
+- **Portfolio Update** — the public site's content (profile, experience,
+  education, skills, awards, projects, research) through a CRUD UI.
+- **Jobs** — a tracker for bank/data/product roles in Dhaka, combining a
+  daily automated fetch (JSearch API, via a Vercel Cron job) with a manual
+  "Add job" button for links found elsewhere.
+- **Finances** — DPS/FDR/SIP/lumpsum/mutual fund holdings, plus an
+  analytical dashboard (total value, breakdown by type, upcoming
+  maturities with estimated payouts).
+- **Password Vault** — logins encrypted in the browser (PBKDF2 + AES-GCM)
+  with a master passphrase that's never sent to the server; passwords stay
+  hidden until you click to reveal one.
+- **Expenses** — a daily spend tracker with monthly totals and a
+  category breakdown.
+- **Documents** — metadata (reference numbers, expiry dates) for NID,
+  passport, certificates, and policies — no files are uploaded.
+- **Net Worth & Goals** — periodic net-worth snapshots charted over time,
+  plus savings goals with progress bars.
+
+Unlike the public content tables, the Jobs/Finances/Vault/Expenses/
+Documents/Net-Worth tables have **no public-read policy at all** — only the
+admin's own authenticated session can read or write them.
 
 ## Environment variables (set in Vercel → Project → Settings → Environment
 Variables, and see `.env.local.example` for local dev)
 
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`, `JSEARCH_API_KEY`, `CRON_SECRET` — optional,
+  only needed for the Jobs section's automated daily fetch (see
+  `SETUP_GUIDE.md` step 4). The rest of the admin panel works without them.
 
 Google sign-in itself is configured in the Supabase dashboard (Authentication
 → Providers → Google), not as an app environment variable — see the setup

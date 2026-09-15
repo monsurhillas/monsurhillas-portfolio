@@ -59,6 +59,39 @@ Apply to all environments (Production, Preview, Development), save, then
 redeploy (Vercel → Deployments → ⋯ on the latest one → Redeploy) so the new
 variables take effect.
 
+## 4. (Optional) Turn on the automated Jobs fetch
+
+The admin panel's **Jobs** section works fully with the manual "Add job"
+button even without this. To also get bank/data/product listings in Dhaka
+fetched automatically once a day:
+
+1. **Get a Supabase service-role key**: Supabase dashboard →
+   **Project Settings → API → Project API keys → `service_role`** (click
+   reveal, then copy). This key bypasses Row Level Security, so treat it
+   like a password — never commit it or share it outside Vercel's env vars.
+2. **Get a JSearch API key**: sign up at
+   [rapidapi.com](https://rapidapi.com/), subscribe to the **JSearch** API
+   (it has a free tier), then copy your RapidAPI key.
+3. **Pick a `CRON_SECRET`**: any long random string you generate yourself
+   (e.g. `openssl rand -hex 32`).
+4. In Vercel → **Project → Settings → Environment Variables**, add:
+
+   | Name | Value |
+   |---|---|
+   | `SUPABASE_SERVICE_ROLE_KEY` | *(from step 1)* |
+   | `JSEARCH_API_KEY` | *(from step 2)* |
+   | `CRON_SECRET` | *(from step 3)* |
+
+   Apply to Production (and Preview if you want), save, then redeploy.
+5. The cron is already wired up in `vercel.json` (`/api/cron/fetch-jobs`,
+   once daily) — Vercel picks it up automatically on deploy and sends
+   `CRON_SECRET` in the request itself, so no further setup is needed.
+
+Bangladesh/bdjobs.com coverage on JSearch is thin (it's not an officially
+supported country there), so this is meant as a supplement to — not a
+replacement for — adding links yourself when you spot something on
+LinkedIn or bdjobs directly.
+
 ## Using it day to day
 
 - Public site: `https://monsurhillas.vercel.app`
