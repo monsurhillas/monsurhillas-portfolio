@@ -1,32 +1,24 @@
-import { createClient } from "@/lib/supabase/server";
 import { getContent } from "@/lib/get-content";
-import { isAdminEmail } from "@/lib/admin";
-import LoginCard from "@/components/admin/LoginCard";
-import NotAuthorized from "@/components/admin/NotAuthorized";
-import AdminDashboard from "@/components/admin/AdminDashboard";
+import PortfolioEditor from "@/components/admin/PortfolioEditor";
 
-export default async function AdminPage({
-  searchParams,
-}: PageProps<"/admin">) {
-  const params = await searchParams;
-  const errorParam =
-    typeof params?.error === "string" ? params.error : undefined;
-
-  const supabase = await createClient();
-  if (!supabase) return <LoginCard error={errorParam} />;
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user || !user.email) {
-    return <LoginCard error={errorParam} />;
-  }
-
-  if (!isAdminEmail(user.email)) {
-    return <NotAuthorized email={user.email} />;
-  }
-
+// The auth gate now lives in app/admin/layout.tsx, shared by every section.
+// This page only renders once we already know the visitor is the admin.
+// PortfolioEditor is a client component and creates its own browser Supabase
+// client (a server client instance can't be passed across the boundary).
+export default async function AdminPortfolioPage() {
   const content = await getContent();
-  return <AdminDashboard content={content} userEmail={user.email} />;
+
+  return (
+    <div>
+      <div className="mb-8">
+        <h1 className="text-2xl font-semibold tracking-tight">
+          Portfolio update
+        </h1>
+        <p className="text-sm text-muted">
+          Edit the content shown on your public profile.
+        </p>
+      </div>
+      <PortfolioEditor content={content} />
+    </div>
+  );
 }
