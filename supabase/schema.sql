@@ -181,3 +181,138 @@ insert into awards (title, issuer, date, description, sort_order) values
 ('ShopUp Spotlight', 'ShopUp', 'Dec 2024', 'Selected as a rising star for consistently exceeding expectations and driving high-impact results across strategic portfolio initiatives.', 1),
 ('Value Hero: Do More With Less', 'ShopUp', 'Nov 2023', 'Awarded for streamlining the monthly MIS process in Q4 2023, reducing preparation time from 10 days to 1 day and improving efficiency and leadership visibility.', 2)
 on conflict do nothing;
+
+-- ============================================================
+-- Personal admin dashboard: jobs, finances, vault, expenses,
+-- documents, net worth, goals. Applied via Supabase MCP
+-- (see migration "add_personal_dashboard_tables"); kept here so
+-- the repo has a complete, current reference of the live schema.
+--
+-- Unlike the public content tables above, these hold private data
+-- and are admin-only for BOTH read and write (no public-read policy).
+-- ============================================================
+
+create table if not exists jobs (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  company text not null default '',
+  location text not null default '',
+  link text,
+  source text not null default 'manual',
+  external_id text,
+  category text not null default 'Other',
+  status text not null default 'Interested',
+  salary_range text not null default '',
+  posted_date text not null default '',
+  description text not null default '',
+  notes text not null default '',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create unique index if not exists jobs_external_id_key on jobs (external_id) where external_id is not null;
+
+create table if not exists financial_instruments (
+  id uuid primary key default gen_random_uuid(),
+  type text not null default 'Other',
+  institution text not null default '',
+  account_ref text not null default '',
+  principal_amount numeric not null default 0,
+  current_value numeric not null default 0,
+  interest_rate numeric not null default 0,
+  monthly_installment numeric not null default 0,
+  start_date date,
+  maturity_date date,
+  tenor_months int,
+  notes text not null default '',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists vault_credentials (
+  id uuid primary key default gen_random_uuid(),
+  website text not null default '',
+  username text not null default '',
+  category text not null default 'Other',
+  ciphertext text not null,
+  iv text not null,
+  salt text not null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists expenses (
+  id uuid primary key default gen_random_uuid(),
+  expense_date date not null default current_date,
+  category text not null default 'Other',
+  amount numeric not null default 0,
+  description text not null default '',
+  payment_method text not null default '',
+  created_at timestamptz not null default now()
+);
+
+create table if not exists documents (
+  id uuid primary key default gen_random_uuid(),
+  type text not null default 'Other',
+  title text not null default '',
+  reference_number text not null default '',
+  issuing_authority text not null default '',
+  issue_date date,
+  expiry_date date,
+  notes text not null default '',
+  created_at timestamptz not null default now()
+);
+
+create table if not exists net_worth_entries (
+  id uuid primary key default gen_random_uuid(),
+  entry_date date not null default current_date,
+  total_assets numeric not null default 0,
+  total_liabilities numeric not null default 0,
+  notes text not null default '',
+  created_at timestamptz not null default now()
+);
+
+create table if not exists financial_goals (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  target_amount numeric not null default 0,
+  current_amount numeric not null default 0,
+  target_date date,
+  notes text not null default '',
+  created_at timestamptz not null default now()
+);
+
+alter table jobs enable row level security;
+alter table financial_instruments enable row level security;
+alter table vault_credentials enable row level security;
+alter table expenses enable row level security;
+alter table documents enable row level security;
+alter table net_worth_entries enable row level security;
+alter table financial_goals enable row level security;
+
+create policy "jobs admin only" on jobs for all
+  using ((auth.jwt() ->> 'email') = 'hillasmonsur@gmail.com')
+  with check ((auth.jwt() ->> 'email') = 'hillasmonsur@gmail.com');
+
+create policy "financial_instruments admin only" on financial_instruments for all
+  using ((auth.jwt() ->> 'email') = 'hillasmonsur@gmail.com')
+  with check ((auth.jwt() ->> 'email') = 'hillasmonsur@gmail.com');
+
+create policy "vault_credentials admin only" on vault_credentials for all
+  using ((auth.jwt() ->> 'email') = 'hillasmonsur@gmail.com')
+  with check ((auth.jwt() ->> 'email') = 'hillasmonsur@gmail.com');
+
+create policy "expenses admin only" on expenses for all
+  using ((auth.jwt() ->> 'email') = 'hillasmonsur@gmail.com')
+  with check ((auth.jwt() ->> 'email') = 'hillasmonsur@gmail.com');
+
+create policy "documents admin only" on documents for all
+  using ((auth.jwt() ->> 'email') = 'hillasmonsur@gmail.com')
+  with check ((auth.jwt() ->> 'email') = 'hillasmonsur@gmail.com');
+
+create policy "net_worth_entries admin only" on net_worth_entries for all
+  using ((auth.jwt() ->> 'email') = 'hillasmonsur@gmail.com')
+  with check ((auth.jwt() ->> 'email') = 'hillasmonsur@gmail.com');
+
+create policy "financial_goals admin only" on financial_goals for all
+  using ((auth.jwt() ->> 'email') = 'hillasmonsur@gmail.com')
+  with check ((auth.jwt() ->> 'email') = 'hillasmonsur@gmail.com');
