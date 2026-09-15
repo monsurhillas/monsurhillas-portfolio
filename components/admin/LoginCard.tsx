@@ -1,9 +1,27 @@
 "use client";
 
+import { Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { GoogleIcon } from "@/components/icons";
 
-export default function LoginCard({ error }: { error?: string }) {
+function LoginError() {
+  // Layouts can't receive searchParams (they don't re-render on navigation),
+  // so the auth-callback error is read here client-side instead of being
+  // passed down as a prop from a server component.
+  const params = useSearchParams();
+  const error = params.get("error");
+  if (!error) return null;
+  return (
+    <p className="mt-4 rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-2 text-sm text-red-500">
+      {error === "not-allowed"
+        ? "That Google account isn't authorized to edit this site."
+        : "Something went wrong signing you in. Please try again."}
+    </p>
+  );
+}
+
+export default function LoginCard() {
   const supabase = createClient();
 
   async function handleLogin() {
@@ -22,13 +40,9 @@ export default function LoginCard({ error }: { error?: string }) {
         content.
       </p>
 
-      {error && (
-        <p className="mt-4 rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-2 text-sm text-red-500">
-          {error === "not-allowed"
-            ? "That Google account isn't authorized to edit this site."
-            : "Something went wrong signing you in. Please try again."}
-        </p>
-      )}
+      <Suspense fallback={null}>
+        <LoginError />
+      </Suspense>
 
       {supabase ? (
         <button

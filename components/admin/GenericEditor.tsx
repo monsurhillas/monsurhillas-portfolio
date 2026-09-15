@@ -18,6 +18,14 @@ function fromListString(value: string): string[] {
     .filter(Boolean);
 }
 
+const STATUS_COLORS: Record<string, string> = {
+  Interested: "bg-surface-2 text-muted",
+  Applied: "bg-blue-500/10 text-blue-500",
+  Interview: "bg-amber-500/10 text-amber-500",
+  Offer: "bg-emerald-500/10 text-emerald-500",
+  Rejected: "bg-red-500/10 text-red-500",
+};
+
 export default function GenericEditor({
   config,
   initialItems,
@@ -40,7 +48,11 @@ export default function GenericEditor({
     const d: Record<string, string> = {};
     for (const f of config.fields) {
       d[f.key] =
-        f.type === "list" ? toListString(item[f.key]) : String(item[f.key] ?? "");
+        f.type === "list"
+          ? toListString(item[f.key])
+          : item[f.key] === null || item[f.key] === undefined
+            ? ""
+            : String(item[f.key]);
     }
     return d;
   }
@@ -60,9 +72,13 @@ export default function GenericEditor({
 
     const payload: Record<string, unknown> = {};
     for (const f of config.fields) {
-      if (f.type === "list") payload[f.key] = fromListString(d[f.key] ?? "");
-      else if (f.key === "sort_order") payload[f.key] = Number(d[f.key]) || 0;
-      else payload[f.key] = d[f.key] ?? "";
+      const raw = d[f.key] ?? "";
+      if (f.type === "list") payload[f.key] = fromListString(raw);
+      else if (f.key === "sort_order") payload[f.key] = Number(raw) || 0;
+      else if (f.type === "number")
+        payload[f.key] = raw === "" && f.nullable ? null : Number(raw) || 0;
+      else if (f.type === "date") payload[f.key] = raw === "" ? null : raw;
+      else payload[f.key] = raw;
     }
 
     const { error } = await supabase
@@ -139,6 +155,15 @@ export default function GenericEditor({
               key={id}
               className="rounded-2xl border border-border bg-surface p-5"
             >
+              {config.table === "jobs" && d.status && (
+                <span
+                  className={`mb-3 inline-block rounded-full px-2.5 py-1 text-xs font-medium ${
+                    STATUS_COLORS[d.status] ?? STATUS_COLORS.Interested
+                  }`}
+                >
+                  {d.status}
+                </span>
+              )}
               <div className="grid gap-3 sm:grid-cols-2">
                 {config.fields.map((f) => (
                   <div
@@ -162,9 +187,29 @@ export default function GenericEditor({
                         }
                         className="w-full rounded-lg border border-border bg-surface-2 px-3 py-2 text-sm outline-none focus:border-accent"
                       />
+                    ) : f.type === "select" ? (
+                      <select
+                        value={d[f.key] ?? ""}
+                        onChange={(e) =>
+                          setDraftField(id, f.key, e.target.value)
+                        }
+                        className="w-full rounded-lg border border-border bg-surface-2 px-3 py-2 text-sm outline-none focus:border-accent"
+                      >
+                        {(f.options ?? []).map((opt) => (
+                          <option key={opt} value={opt}>
+                            {opt}
+                          </option>
+                        ))}
+                      </select>
                     ) : (
                       <input
-                        type="text"
+                        type={
+                          f.type === "number"
+                            ? "number"
+                            : f.type === "date"
+                              ? "date"
+                              : "text"
+                        }
                         value={d[f.key] ?? ""}
                         placeholder={f.placeholder}
                         onChange={(e) =>
