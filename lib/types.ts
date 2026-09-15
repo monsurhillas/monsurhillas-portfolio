@@ -86,3 +86,125 @@ export const TABLES = {
   projects: "projects",
   research: "research",
 } as const;
+
+// ---------- Personal dashboard (private, admin-only) ----------
+
+export type JobStatus =
+  | "Interested"
+  | "Applied"
+  | "Interview"
+  | "Offer"
+  | "Rejected";
+
+export interface JobListing {
+  id: string;
+  title: string;
+  company: string;
+  location: string;
+  link: string | null;
+  source: "manual" | "jsearch";
+  external_id: string | null;
+  category: string;
+  status: JobStatus;
+  salary_range: string;
+  posted_date: string;
+  description: string;
+  notes: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export type FinancialInstrumentType =
+  | "DPS"
+  | "FDR"
+  | "SIP"
+  | "Lumpsum"
+  | "Mutual Fund"
+  | "Other";
+
+export interface FinancialInstrument {
+  id: string;
+  type: FinancialInstrumentType;
+  institution: string;
+  account_ref: string;
+  principal_amount: number;
+  current_value: number;
+  interest_rate: number;
+  monthly_installment: number;
+  start_date: string | null;
+  maturity_date: string | null;
+  tenor_months: number | null;
+  notes: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface VaultCredential {
+  id: string;
+  website: string;
+  username: string;
+  category: string;
+  ciphertext: string;
+  iv: string;
+  salt: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Expense {
+  id: string;
+  expense_date: string;
+  category: string;
+  amount: number;
+  description: string;
+  payment_method: string;
+  created_at: string;
+}
+
+export type DocumentType =
+  | "NID"
+  | "Passport"
+  | "Certificate"
+  | "Insurance"
+  | "Other";
+
+export interface DocumentRecord {
+  id: string;
+  type: DocumentType;
+  title: string;
+  reference_number: string;
+  issuing_authority: string;
+  issue_date: string | null;
+  expiry_date: string | null;
+  notes: string;
+  created_at: string;
+}
+
+export interface NetWorthEntry {
+  id: string;
+  entry_date: string;
+  total_assets: number;
+  total_liabilities: number;
+  notes: string;
+  created_at: string;
+}
+
+export interface FinancialGoal {
+  id: string;
+  name: string;
+  target_amount: number;
+  current_amount: number;
+  target_date: string | null;
+  notes: string;
+  created_at: string;
+}
+
+export const PRIVATE_TABLES = {
+  jobs: "jobs",
+  financial_instruments: "financial_instruments",
+  vault_credentials: "vault_credentials",
+  expenses: "expenses",
+  documents: "documents",
+  net_worth_entries: "net_worth_entries",
+  financial_goals: "financial_goals",
+} as const;
