@@ -46,6 +46,23 @@ export default function FinancesSection({
       .sort((a, b) => b.value - a.value);
   }, [initialItems]);
 
+  // Mutual funds specifically, broken down by AMC (stored in `institution`)
+  // so it's easy to see how much is invested with each fund house.
+  const mutualFundsByAmc = useMemo(() => {
+    const map = new Map<string, { invested: number; current: number }>();
+    for (const i of initialItems) {
+      if (i.type !== "Mutual Fund") continue;
+      const amc = i.institution || "Unspecified AMC";
+      const entry = map.get(amc) ?? { invested: 0, current: 0 };
+      entry.invested += Number(i.principal_amount);
+      entry.current += Number(i.current_value);
+      map.set(amc, entry);
+    }
+    return Array.from(map.entries())
+      .map(([amc, v]) => ({ amc, ...v }))
+      .sort((a, b) => b.current - a.current);
+  }, [initialItems]);
+
   const upcomingMaturities = useMemo(() => {
     const now = new Date();
     const in12mo = new Date();
@@ -166,6 +183,49 @@ export default function FinancesSection({
                     </div>
                   ))}
                 </div>
+              </div>
+            </div>
+          )}
+
+          {mutualFundsByAmc.length > 0 && (
+            <div className="mb-6 rounded-2xl border border-border bg-surface p-5">
+              <div className="mb-3 text-xs text-muted">
+                Mutual funds by AMC
+              </div>
+              <div className="space-y-2.5">
+                {mutualFundsByAmc.map((row) => {
+                  const gain = row.current - row.invested;
+                  const gainPct =
+                    row.invested > 0 ? (gain / row.invested) * 100 : 0;
+                  return (
+                    <div
+                      key={row.amc}
+                      className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-surface-2 px-3 py-2.5"
+                    >
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-medium">
+                          {row.amc}
+                        </div>
+                        <div className="text-xs text-muted">
+                          Invested {formatBDT(row.invested)}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm font-medium">
+                          {formatBDT(row.current)}
+                        </div>
+                        <div
+                          className={`text-xs ${
+                            gain >= 0 ? "text-emerald-500" : "text-red-500"
+                          }`}
+                        >
+                          {gain >= 0 ? "+" : ""}
+                          {gainPct.toFixed(1)}%
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
