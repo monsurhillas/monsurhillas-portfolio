@@ -49,12 +49,15 @@ UI and in the database (Row Level Security):
 - **Jobs** — a tracker for bank/data/product roles in Dhaka, combining a
   daily automated fetch (JSearch API, via a Vercel Cron job) with a manual
   "Add job" button for links found elsewhere.
-- **Finances** — DPS/FDR/SIP/lumpsum/mutual fund holdings, plus an
-  analytical dashboard (total value, breakdown by type, upcoming
-  maturities with estimated payouts).
+- **Finances** — DPS/FDR/Sanchaypatra/SIP/lumpsum/mutual fund holdings
+  (mutual funds broken down by AMC), plus an analytical dashboard (total
+  value, breakdown by type, per-AMC gains, upcoming maturities with
+  estimated payouts).
 - **Password Vault** — logins encrypted in the browser (PBKDF2 + AES-GCM)
-  with a master passphrase that's never sent to the server; passwords stay
-  hidden until you click to reveal one.
+  with a master passphrase that's never sent to the server; fields adapt
+  to the entry's category (social media platforms, bank portals with
+  branch/routing/app password/T-PIN, email, work, or a generic login),
+  and every sensitive field stays hidden until you click to reveal it.
 - **Expenses** — a daily spend tracker with monthly totals and a
   category breakdown.
 - **Documents** — metadata (reference numbers, expiry dates) for NID,
