@@ -230,9 +230,10 @@ create table if not exists financial_instruments (
 
 create table if not exists vault_credentials (
   id uuid primary key default gen_random_uuid(),
-  website text not null default '',
+  website text not null default '', -- display label: bank name, account label, service name, etc.
   username text not null default '',
   category text not null default 'Other',
+  platform text, -- specific social platform (Facebook, Instagram, ...); null outside "Social Media"
   ciphertext text not null,
   iv text not null,
   salt text not null,
