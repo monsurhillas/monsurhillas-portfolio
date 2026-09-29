@@ -56,10 +56,13 @@ export interface EncryptedPayload {
   salt: string;
 }
 
-export interface VaultSecret {
-  password: string;
-  notes: string;
-}
+// The set of keys stored here depends on the vault entry's category — see
+// lib/vault-categories.ts for which keys each category actually uses. It's
+// a flexible string map (rather than a fixed shape) precisely so a bank
+// portal entry can carry `tpin`/`branch` while a social entry carries
+// `phone`/`recovery`, without the encryption layer needing to know about
+// categories at all.
+export type VaultSecret = Record<string, string>;
 
 export async function encryptSecret(
   passphrase: string,

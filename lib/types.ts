@@ -117,6 +117,7 @@ export interface JobListing {
 export type FinancialInstrumentType =
   | "DPS"
   | "FDR"
+  | "Sanchaypatra"
   | "SIP"
   | "Lumpsum"
   | "Mutual Fund"
@@ -141,9 +142,10 @@ export interface FinancialInstrument {
 
 export interface VaultCredential {
   id: string;
-  website: string;
+  website: string; // display label — bank name, platform account label, service name, etc.
   username: string;
   category: string;
+  platform: string | null; // set only when category is "Social Media"
   ciphertext: string;
   iv: string;
   salt: string;

@@ -1,3 +1,5 @@
+import { formatBDT } from "@/lib/chart-colors";
+
 export type FieldType =
   | "text"
   | "textarea"
@@ -22,6 +24,12 @@ export interface TableConfig {
   singular: string;
   fields: FieldConfig[];
   emptyItem: Record<string, unknown>;
+  // Optional compact summary for the collapsed card header. Falls back to
+  // the first couple of text-ish fields when omitted.
+  summary?: (item: Record<string, unknown>) => {
+    primary: string;
+    secondary?: string;
+  };
 }
 
 export const TABLE_CONFIGS: TableConfig[] = [
@@ -171,6 +179,10 @@ export const JOB_CONFIG: TableConfig = {
     description: "",
     notes: "",
   },
+  summary: (item) => ({
+    primary: `${String(item.title || "Untitled")} — ${String(item.company || "")}`,
+    secondary: String(item.location || ""),
+  }),
 };
 
 export const EXPENSE_CONFIG: TableConfig = {
@@ -205,6 +217,10 @@ export const EXPENSE_CONFIG: TableConfig = {
     description: "",
     payment_method: "",
   },
+  summary: (item) => ({
+    primary: String(item.description || item.category || "Expense"),
+    secondary: `${String(item.expense_date || "")} · ${String(item.category || "")} · ${formatBDT(Number(item.amount) || 0)}`,
+  }),
 };
 
 export const DOCUMENT_CONFIG: TableConfig = {
@@ -234,6 +250,12 @@ export const DOCUMENT_CONFIG: TableConfig = {
     expiry_date: null,
     notes: "",
   },
+  summary: (item) => ({
+    primary: String(item.title || item.type || "Document"),
+    secondary: item.expiry_date
+      ? `Expires ${String(item.expiry_date)}`
+      : String(item.type || ""),
+  }),
 };
 
 export const FINANCIAL_INSTRUMENT_CONFIG: TableConfig = {
@@ -245,11 +267,24 @@ export const FINANCIAL_INSTRUMENT_CONFIG: TableConfig = {
       key: "type",
       label: "Type",
       type: "select",
-      options: ["DPS", "FDR", "SIP", "Lumpsum", "Mutual Fund", "Other"],
+      options: [
+        "DPS",
+        "FDR",
+        "Sanchaypatra",
+        "SIP",
+        "Lumpsum",
+        "Mutual Fund",
+        "Other",
+      ],
     },
-    { key: "institution", label: "Institution / bank", type: "text" },
-    { key: "account_ref", label: "Account / folio no.", type: "text" },
-    { key: "principal_amount", label: "Principal amount (BDT)", type: "number" },
+    {
+      key: "institution",
+      label: "Institution / Bank / AMC",
+      type: "text",
+      placeholder: "e.g. IDLC, BRAC Bank, or an AMC name",
+    },
+    { key: "account_ref", label: "Account / folio / certificate no.", type: "text" },
+    { key: "principal_amount", label: "Principal / invested amount (BDT)", type: "number" },
     { key: "current_value", label: "Current value (BDT)", type: "number" },
     { key: "interest_rate", label: "Interest / return rate (%/yr)", type: "number" },
     {
@@ -275,6 +310,10 @@ export const FINANCIAL_INSTRUMENT_CONFIG: TableConfig = {
     tenor_months: null,
     notes: "",
   },
+  summary: (item) => ({
+    primary: `${String(item.institution || item.type)} — ${String(item.type)}`,
+    secondary: formatBDT(Number(item.current_value) || 0),
+  }),
 };
 
 export const NET_WORTH_CONFIG: TableConfig = {
@@ -293,6 +332,12 @@ export const NET_WORTH_CONFIG: TableConfig = {
     total_liabilities: 0,
     notes: "",
   },
+  summary: (item) => ({
+    primary: String(item.entry_date || ""),
+    secondary: `Net: ${formatBDT(
+      (Number(item.total_assets) || 0) - (Number(item.total_liabilities) || 0)
+    )}`,
+  }),
 };
 
 export const FINANCIAL_GOAL_CONFIG: TableConfig = {
@@ -313,4 +358,10 @@ export const FINANCIAL_GOAL_CONFIG: TableConfig = {
     target_date: null,
     notes: "",
   },
+  summary: (item) => ({
+    primary: String(item.name || "Goal"),
+    secondary: `${formatBDT(Number(item.current_amount) || 0)} / ${formatBDT(
+      Number(item.target_amount) || 0
+    )}`,
+  }),
 };
