@@ -50,9 +50,12 @@ UI and in the database (Row Level Security):
   daily automated fetch (JSearch API, via a Vercel Cron job) with a manual
   "Add job" button for links found elsewhere.
 - **Finances** — DPS/FDR/Sanchaypatra/SIP/lumpsum/mutual fund holdings
-  (mutual funds broken down by AMC), plus an analytical dashboard (total
-  value, breakdown by type, per-AMC gains, upcoming maturities with
-  estimated payouts).
+  (mutual funds broken down by AMC) with an analytical dashboard: value and
+  growth, interest expected over the next 7/30/90 days (after 10% source
+  tax with TIN), a 12-month interest timeline, upcoming maturities with
+  gross/tax/net interest, deposit exposure per institution, and an "Actions"
+  list. Recurring FDRs roll over automatically (new start date = old
+  maturity, +90 days) and are queued for a rate check against the bank portal.
 - **Password Vault** — logins encrypted in the browser (PBKDF2 + AES-GCM)
   with a master passphrase that's never sent to the server; fields adapt
   to the entry's category (social media platforms, bank portals with
