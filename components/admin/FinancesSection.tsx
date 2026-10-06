@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   ResponsiveContainer,
   PieChart,
@@ -15,11 +15,23 @@ import PercentBar from "./PercentBar";
 import { createClient } from "@/lib/supabase/client";
 import { colorForIndex, formatBDT } from "@/lib/chart-colors";
 import { useCountUp } from "@/lib/use-count-up";
+import {
+  DEPOSIT_INSURANCE_LIMIT,
+  buildActionables,
+  buildInterestEvents,
+  daysBetween,
+  institutionExposure,
+  investedAmount,
+  isOutlier,
+  monthlyTimeline,
+  yieldStats,
+} from "@/lib/finance-calc";
+import InterestCards from "./finance/InterestCards";
+import ActionablesPanel from "./finance/ActionablesPanel";
+import RateQueue from "./finance/RateQueue";
+import InterestTimeline from "./finance/InterestTimeline";
+import MaturityList from "./finance/MaturityList";
 import type { FinancialInstrument } from "@/lib/types";
-
-function yearsBetween(a: Date, b: Date): number {
-  return (b.getTime() - a.getTime()) / (365.25 * 24 * 60 * 60 * 1000);
-}
 
 function GainBadge({ pct }: { pct: number | null }) {
   if (pct === null) return null;
@@ -39,19 +51,48 @@ function GainBadge({ pct }: { pct: number | null }) {
 
 export default function FinancesSection({
   initialItems,
+  today,
 }: {
   initialItems: FinancialInstrument[];
+  today: string;
 }) {
   const [view, setView] = useState<"dashboard" | "manage">("dashboard");
+  const [items, setItems] = useState<FinancialInstrument[]>(initialItems);
   const supabase = createClient();
 
+  const patchItem = useCallback(
+    (id: string, patch: Partial<FinancialInstrument>) =>
+      setItems((prev) =>
+        prev.map((i) => (i.id === id ? { ...i, ...patch } : i))
+      ),
+    []
+  );
+  const onEditorChange = useCallback(
+    (rows: Record<string, unknown>[]) =>
+      setItems(rows as unknown as FinancialInstrument[]),
+    []
+  );
+
+  // Rows whose principal and value disagree wildly (e.g. a typo'd extra zero)
+  // are counted at their current value so they can't distort growth figures;
+  // the Actions panel nudges you to fix them.
+  const investedOf = useCallback(
+    (i: FinancialInstrument) =>
+      isOutlier(i, today) ? Number(i.current_value) : investedAmount(i, today),
+    [today]
+  );
+  const outlierCount = useMemo(
+    () => items.filter((i) => isOutlier(i, today)).length,
+    [items, today]
+  );
+
   const totalCurrentValue = useMemo(
-    () => initialItems.reduce((sum, i) => sum + Number(i.current_value), 0),
-    [initialItems]
+    () => items.reduce((sum, i) => sum + Number(i.current_value), 0),
+    [items]
   );
   const totalPrincipal = useMemo(
-    () => initialItems.reduce((sum, i) => sum + Number(i.principal_amount), 0),
-    [initialItems]
+    () => items.reduce((sum, i) => sum + investedOf(i), 0),
+    [items, investedOf]
   );
   const growthPct =
     totalPrincipal > 0
@@ -64,14 +105,29 @@ export default function FinancesSection({
   const animatedCurrent = useCountUp(totalCurrentValue);
   const animatedPrincipal = useCountUp(totalPrincipal);
   const animatedGrowth = useCountUp(growthPct ?? 0);
-  const animatedCount = useCountUp(initialItems.length, 500);
+  const animatedCount = useCountUp(items.length, 500);
+
+  const events = useMemo(
+    () => buildInterestEvents(items, today, 365),
+    [items, today]
+  );
+  const actions = useMemo(
+    () => buildActionables(items, events, today),
+    [items, events, today]
+  );
+  const timeline = useMemo(
+    () => monthlyTimeline(events, today, 12),
+    [events, today]
+  );
+  const stats = useMemo(() => yieldStats(items), [items]);
+  const exposure = useMemo(() => institutionExposure(items), [items]);
 
   const byType = useMemo(() => {
     const map = new Map<string, { current: number; principal: number }>();
-    for (const i of initialItems) {
+    for (const i of items) {
       const entry = map.get(i.type) ?? { current: 0, principal: 0 };
       entry.current += Number(i.current_value);
-      entry.principal += Number(i.principal_amount);
+      entry.principal += investedOf(i);
       map.set(i.type, entry);
     }
     const rows = Array.from(map.entries())
@@ -84,19 +140,24 @@ export default function FinancesSection({
       pct: total > 0 ? (r.current / total) * 100 : 0,
       gainPct: r.principal > 0 ? ((r.current - r.principal) / r.principal) * 100 : null,
     }));
-  }, [initialItems]);
+  }, [items, investedOf]);
 
   // Mutual funds specifically, broken down by AMC (stored in `institution`)
   // so it's easy to see how much is invested with each fund house, and what
   // share of the mutual-fund sleeve each AMC represents.
   const mutualFundsByAmc = useMemo(() => {
-    const map = new Map<string, { invested: number; current: number }>();
-    for (const i of initialItems) {
+    const map = new Map<
+      string,
+      { invested: number; current: number; updated: string }
+    >();
+    for (const i of items) {
       if (i.type !== "Mutual Fund") continue;
       const amc = i.institution || "Unspecified AMC";
-      const entry = map.get(amc) ?? { invested: 0, current: 0 };
+      const entry = map.get(amc) ?? { invested: 0, current: 0, updated: "" };
       entry.invested += Number(i.principal_amount);
       entry.current += Number(i.current_value);
+      const u = i.updated_at.slice(0, 10);
+      if (u > entry.updated) entry.updated = u;
       map.set(amc, entry);
     }
     const rows = Array.from(map.entries())
@@ -108,37 +169,7 @@ export default function FinancesSection({
       pct: total > 0 ? (r.current / total) * 100 : 0,
       gainPct: r.invested > 0 ? ((r.current - r.invested) / r.invested) * 100 : null,
     }));
-  }, [initialItems]);
-
-  const upcomingMaturities = useMemo(() => {
-    const now = new Date();
-    const in12mo = new Date();
-    in12mo.setMonth(in12mo.getMonth() + 12);
-    return initialItems
-      .filter(
-        (i) =>
-          i.maturity_date &&
-          new Date(i.maturity_date) >= now &&
-          new Date(i.maturity_date) <= in12mo
-      )
-      .map((i) => {
-        const maturity = new Date(i.maturity_date as string);
-        const yrs = Math.max(0, yearsBetween(now, maturity));
-        const projected =
-          Number(i.current_value) *
-          (1 + (Number(i.interest_rate) / 100) * yrs);
-        const projectedGainPct =
-          Number(i.current_value) > 0
-            ? ((projected - Number(i.current_value)) / Number(i.current_value)) * 100
-            : 0;
-        return { ...i, projected, projectedGainPct };
-      })
-      .sort(
-        (a, b) =>
-          new Date(a.maturity_date as string).getTime() -
-          new Date(b.maturity_date as string).getTime()
-      );
-  }, [initialItems]);
+  }, [items]);
 
   if (!supabase) {
     return (
@@ -176,7 +207,7 @@ export default function FinancesSection({
               </div>
             </div>
             <div className="rounded-2xl border border-border bg-surface p-5">
-              <div className="text-xs text-muted">Total principal invested</div>
+              <div className="text-xs text-muted">Total invested</div>
               <div className="mt-1 text-2xl font-semibold">
                 {formatBDT(animatedPrincipal)}
               </div>
@@ -211,6 +242,21 @@ export default function FinancesSection({
               </div>
             </div>
           </div>
+
+          {outlierCount > 0 && (
+            <p className="-mt-3 mb-6 text-xs text-muted">
+              {outlierCount} holding{outlierCount > 1 ? "s are" : " is"} counted
+              at current value in the totals because principal and value
+              disagree wildly &mdash; likely a typo; fix it under Manage
+              holdings.
+            </p>
+          )}
+
+          <InterestCards events={events} today={today} />
+          <ActionablesPanel actions={actions} />
+          <RateQueue items={items} supabase={supabase} onPatch={patchItem} />
+          <InterestTimeline buckets={timeline} stats={stats} />
+          <MaturityList items={items} events={events} today={today} />
 
           {byType.length > 0 && (
             <div className="mb-6 rounded-2xl border border-border bg-surface p-5">
@@ -288,7 +334,10 @@ export default function FinancesSection({
                           {row.amc}
                         </div>
                         <div className="text-xs text-muted">
-                          Invested {formatBDT(row.invested)}
+                          Invested {formatBDT(row.invested)} · balance updated{" "}
+                          {daysBetween(row.updated, today) <= 0
+                            ? "today"
+                            : `${daysBetween(row.updated, today)}d ago`}
                         </div>
                       </div>
                       <div className="flex shrink-0 items-center gap-2 text-right">
@@ -308,53 +357,47 @@ export default function FinancesSection({
             </div>
           )}
 
-          <div className="rounded-2xl border border-border bg-surface p-5">
-            <div className="mb-3 text-xs text-muted">
-              Maturing in the next 12 months
-            </div>
-            {upcomingMaturities.length === 0 ? (
-              <p className="text-sm text-muted">Nothing maturing soon.</p>
-            ) : (
+          {exposure.length > 0 && (
+            <div className="rounded-2xl border border-border bg-surface p-5">
+              <div className="mb-3 text-xs text-muted">
+                Deposit exposure by institution
+              </div>
               <div className="space-y-3">
-                {upcomingMaturities.map((i) => (
-                  <div
-                    key={i.id}
-                    className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-3 last:border-0 last:pb-0"
-                  >
-                    <div>
-                      <div className="text-sm font-medium">
-                        {i.institution || i.type} — {i.type}
-                      </div>
-                      <div className="text-xs text-muted">
-                        Matures {i.maturity_date} · @{" "}
-                        {Number(i.interest_rate).toFixed(1)}%/yr
-                      </div>
+                {exposure.map((row, i) => (
+                  <div key={row.institution} className="space-y-1.5">
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+                      <span className="truncate font-medium">
+                        {row.institution}
+                      </span>
+                      <span className="flex items-center gap-2">
+                        <span className="font-medium">
+                          {formatBDT(row.amount)}
+                        </span>
+                        <span className="w-12 text-right text-xs text-muted">
+                          {row.pct.toFixed(1)}%
+                        </span>
+                      </span>
                     </div>
-                    <div className="text-right text-sm">
-                      <div className="flex items-center justify-end gap-1.5 font-medium">
-                        ~{formatBDT(i.projected)}
-                        <GainBadge pct={i.projectedGainPct} />
-                      </div>
-                      <div className="text-xs text-muted">
-                        estimated, not advice
-                      </div>
-                    </div>
+                    <PercentBar percent={row.pct} color={colorForIndex(i)} />
                   </div>
                 ))}
               </div>
-            )}
-            <p className="mt-4 text-xs text-muted">
-              Projected values use simple interest on the current value and
-              are estimates only — not financial advice. Actual maturity
-              payouts depend on your instrument&rsquo;s specific terms.
-            </p>
-          </div>
+              <p className="mt-4 text-xs text-muted">
+                FDR + DPS + Sanchaypatra by institution. Deposit insurance
+                covers roughly {formatBDT(DEPOSIT_INSURANCE_LIMIT)} per
+                depositor per institution (approximate &mdash; confirm with
+                Bangladesh Bank), so balances above that rely on the
+                institution&rsquo;s own soundness.
+              </p>
+            </div>
+          )}
         </div>
       ) : (
         <GenericEditor
           config={FINANCIAL_INSTRUMENT_CONFIG}
-          initialItems={initialItems as unknown as Record<string, unknown>[]}
+          initialItems={items as unknown as Record<string, unknown>[]}
           supabase={supabase}
+          onItemsChange={onEditorChange}
         />
       )}
     </div>

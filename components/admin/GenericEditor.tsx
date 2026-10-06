@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { Plus, Save, Trash2, Loader2, ChevronDown } from "lucide-react";
 import type { FieldConfig, TableConfig } from "@/lib/admin-fields";
@@ -53,12 +53,19 @@ export default function GenericEditor({
   config,
   initialItems,
   supabase,
+  onItemsChange,
 }: {
   config: TableConfig;
   initialItems: Row[];
   supabase: SupabaseClient;
+  // Lets a parent (e.g. a dashboard) mirror edits made in this list.
+  onItemsChange?: (items: Row[]) => void;
 }) {
   const [items, setItems] = useState<Row[]>(initialItems);
+
+  useEffect(() => {
+    onItemsChange?.(items);
+  }, [items, onItemsChange]);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -83,7 +90,11 @@ export default function GenericEditor({
       d[f.key] =
         f.type === "list"
           ? toListString(item[f.key])
-          : item[f.key] === null || item[f.key] === undefined
+          : f.type === "boolean"
+            ? item[f.key]
+              ? "true"
+              : "false"
+            : item[f.key] === null || item[f.key] === undefined
             ? ""
             : String(item[f.key]);
     }
@@ -107,6 +118,7 @@ export default function GenericEditor({
     for (const f of config.fields) {
       const raw = d[f.key] ?? "";
       if (f.type === "list") payload[f.key] = fromListString(raw);
+      else if (f.type === "boolean") payload[f.key] = raw === "true";
       else if (f.key === "sort_order") payload[f.key] = Number(raw) || 0;
       else if (f.type === "number")
         payload[f.key] = raw === "" && f.nullable ? null : Number(raw) || 0;
@@ -269,6 +281,25 @@ export default function GenericEditor({
                             }
                             className="w-full rounded-lg border border-border bg-surface-2 px-3 py-2 text-sm outline-none focus:border-accent"
                           />
+                        ) : f.type === "boolean" ? (
+                          <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-border bg-surface-2 px-3 py-2 text-sm">
+                            <input
+                              type="checkbox"
+                              checked={d[f.key] === "true"}
+                              onChange={(e) =>
+                                setDraftField(
+                                  id,
+                                  f.key,
+                                  e.target.checked ? "true" : "false"
+                                )
+                              }
+                              className="h-4 w-4"
+                              style={{ accentColor: "var(--accent)" }}
+                            />
+                            <span className="text-muted">
+                              {d[f.key] === "true" ? "Yes" : "No"}
+                            </span>
+                          </label>
                         ) : f.type === "select" ? (
                           <select
                             value={d[f.key] ?? ""}
