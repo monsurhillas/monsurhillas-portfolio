@@ -136,6 +136,13 @@ export interface FinancialInstrument {
   maturity_date: string | null;
   tenor_months: number | null;
   notes: string;
+  auto_renew: boolean;
+  renewal_tenor_days: number | null;
+  needs_rate_update: boolean;
+  tax_rate: number; // source tax on interest, % (10 with TIN)
+  renewal_count: number;
+  last_renewed_at: string | null;
+  payout_frequency: string; // Monthly / Quarterly / Half-yearly / At maturity
   created_at: string;
   updated_at: string;
 }

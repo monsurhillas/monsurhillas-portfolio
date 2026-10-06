@@ -8,6 +8,7 @@ import type {
   NetWorthEntry,
   FinancialGoal,
 } from "@/lib/types";
+import { applyPatches, computeRollovers } from "@/lib/finance-calc";
 
 // These fetch private, admin-only tables. Unlike lib/get-content.ts, there
 // is no public seed-data fallback here — if Supabase isn't configured or a
@@ -97,4 +98,25 @@ export async function getFinancialGoals(): Promise<FinancialGoal[]> {
     .select("*")
     .order("created_at", { ascending: false });
   return (data as FinancialGoal[]) ?? [];
+}
+
+// Applies due FDR roll-overs (see computeRollovers) and persists them with
+// the signed-in admin's session, so the stored dates stay in step with
+// reality whenever the Finances page is opened. If a write fails, the
+// computed values are still returned so the dashboard stays correct.
+export async function applyAutoRollovers(
+  items: FinancialInstrument[],
+  today: string
+): Promise<FinancialInstrument[]> {
+  const patches = computeRollovers(items, today);
+  if (patches.length === 0) return items;
+  const supabase = await createClient();
+  if (supabase) {
+    await Promise.all(
+      patches.map((p) =>
+        supabase.from("financial_instruments").update(p.patch).eq("id", p.id)
+      )
+    );
+  }
+  return applyPatches(items, patches);
 }

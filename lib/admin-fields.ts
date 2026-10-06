@@ -7,7 +7,8 @@ export type FieldType =
   | "url"
   | "number"
   | "date"
-  | "select";
+  | "select"
+  | "boolean";
 
 export interface FieldConfig {
   key: string;
@@ -295,6 +296,30 @@ export const FINANCIAL_INSTRUMENT_CONFIG: TableConfig = {
     { key: "start_date", label: "Start date", type: "date", nullable: true },
     { key: "maturity_date", label: "Maturity date", type: "date", nullable: true },
     { key: "tenor_months", label: "Tenor (months)", type: "number", nullable: true },
+    { key: "tax_rate", label: "Tax on interest (%) — 10 with TIN", type: "number" },
+    {
+      key: "auto_renew",
+      label: "Auto-renews at maturity (recurring FDR)",
+      type: "boolean",
+    },
+    {
+      key: "renewal_tenor_days",
+      label: "Renewal cycle (days)",
+      type: "number",
+      nullable: true,
+      placeholder: "90",
+    },
+    {
+      key: "needs_rate_update",
+      label: "Rate needs verification from the bank portal",
+      type: "boolean",
+    },
+    {
+      key: "payout_frequency",
+      label: "Profit payout (Sanchaypatra)",
+      type: "select",
+      options: ["At maturity", "Monthly", "Quarterly", "Half-yearly"],
+    },
     { key: "notes", label: "Notes", type: "textarea" },
   ],
   emptyItem: {
@@ -308,10 +333,17 @@ export const FINANCIAL_INSTRUMENT_CONFIG: TableConfig = {
     start_date: null,
     maturity_date: null,
     tenor_months: null,
+    tax_rate: 10,
+    auto_renew: false,
+    renewal_tenor_days: null,
+    needs_rate_update: false,
+    payout_frequency: "At maturity",
     notes: "",
   },
   summary: (item) => ({
-    primary: `${String(item.institution || item.type)} — ${String(item.type)}`,
+    primary: `${String(item.institution || item.type)} — ${String(item.type)}${
+      item.account_ref ? ` · ${String(item.account_ref).slice(-4)}` : ""
+    }${item.needs_rate_update ? " · verify rate" : ""}`,
     secondary: formatBDT(Number(item.current_value) || 0),
   }),
 };
