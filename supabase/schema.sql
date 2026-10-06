@@ -224,9 +224,26 @@ create table if not exists financial_instruments (
   maturity_date date,
   tenor_months int,
   notes text not null default '',
+  auto_renew boolean not null default false, -- FDRs that roll over at maturity
+  renewal_tenor_days int, -- length of each renewal cycle (e.g. 90)
+  needs_rate_update boolean not null default false, -- set after a roll-over until the rate is confirmed
+  tax_rate numeric not null default 10, -- source tax on interest, % (10 with TIN)
+  renewal_count int not null default 0,
+  last_renewed_at date,
+  payout_frequency text not null default 'At maturity', -- Monthly / Quarterly / Half-yearly / At maturity
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+-- For databases created before the renewal/tax columns existed:
+alter table financial_instruments
+  add column if not exists auto_renew boolean not null default false,
+  add column if not exists renewal_tenor_days int,
+  add column if not exists needs_rate_update boolean not null default false,
+  add column if not exists tax_rate numeric not null default 10,
+  add column if not exists renewal_count int not null default 0,
+  add column if not exists last_renewed_at date,
+  add column if not exists payout_frequency text not null default 'At maturity';
 
 create table if not exists vault_credentials (
   id uuid primary key default gen_random_uuid(),
@@ -317,3 +334,16 @@ create policy "net_worth_entries admin only" on net_worth_entries for all
 create policy "financial_goals admin only" on financial_goals for all
   using ((auth.jwt() ->> 'email') = 'hillasmonsur@gmail.com')
   with check ((auth.jwt() ->> 'email') = 'hillasmonsur@gmail.com');
+
+-- Keep financial_instruments.updated_at fresh (used to flag stale mutual-fund balances).
+create or replace function set_updated_at() returns trigger language plpgsql as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
+
+drop trigger if exists financial_instruments_set_updated_at on financial_instruments;
+create trigger financial_instruments_set_updated_at
+before update on financial_instruments
+for each row execute function set_updated_at();
