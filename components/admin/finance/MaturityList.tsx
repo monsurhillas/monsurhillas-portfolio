@@ -45,7 +45,7 @@ export default function MaturityList({
   rows.sort((a, b) => a.date.localeCompare(b.date));
 
   return (
-    <div className="mb-6 rounded-2xl border border-border bg-surface p-5">
+    <div className="card reveal p-5">
       <div className="mb-3 text-xs text-muted">
         Upcoming maturities · FDRs next 120 days, others 12 months
       </div>
@@ -84,7 +84,7 @@ export default function MaturityList({
                 <div className="text-right text-sm">
                   {event ? (
                     <>
-                      <div className="font-medium text-emerald-500">
+                      <div className="font-medium text-[var(--good)]">
                         +{formatBDT(event.net)}
                       </div>
                       <div className="text-xs text-muted">

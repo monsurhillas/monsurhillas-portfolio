@@ -20,10 +20,10 @@ export default function ActionablesPanel({
   actions: Actionable[];
 }) {
   return (
-    <div className="mb-6 rounded-2xl border border-border bg-surface p-5">
+    <div className="card reveal p-5">
       <div className="mb-3 text-xs text-muted">What needs your attention</div>
       {actions.length === 0 ? (
-        <p className="flex items-center gap-2 text-sm text-emerald-500">
+        <p className="flex items-center gap-2 text-sm text-[var(--good)]">
           <CheckCircle2 size={16} /> Nothing pending — all up to date.
         </p>
       ) : (

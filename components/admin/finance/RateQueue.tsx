@@ -46,7 +46,7 @@ export default function RateQueue({
   }
 
   return (
-    <div className="mb-6 rounded-2xl border border-amber-500/30 bg-amber-500/5 p-5">
+    <div className="card reveal border-amber-500/40 bg-amber-500/5 p-5">
       <div className="mb-1 text-sm font-medium">
         Rate check queue · {queue.length}
       </div>
