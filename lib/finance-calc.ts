@@ -164,7 +164,7 @@ export function instrumentLabel(i: FinancialInstrument): string {
   return `${i.institution || i.type}${tail}`;
 }
 
-function sanchaypatraMaturity(i: FinancialInstrument): string | null {
+export function sanchaypatraMaturity(i: FinancialInstrument): string | null {
   if (i.maturity_date) return i.maturity_date;
   if (i.start_date && num(i.tenor_months) > 0) {
     return addMonths(i.start_date, num(i.tenor_months));
@@ -520,18 +520,18 @@ export function buildActionables(
     });
   }
 
-  // 4. Mutual-fund balances that haven't been refreshed lately.
+  // 4. Fund / DPS balances that haven't been refreshed lately.
   const stale = items.filter(
     (i) =>
-      (i.type === "Mutual Fund" || i.type === "SIP" || i.type === "Lumpsum") &&
+      (i.type === "Mutual Fund" || i.type === "SIP" || i.type === "Lumpsum" || i.type === "DPS") &&
       daysBetween(i.updated_at.slice(0, 10), today) > STALE_DAYS
   );
   if (stale.length) {
     out.push({
       key: "stale-balance",
       severity: "medium",
-      title: `Update ${stale.length} fund balance${stale.length > 1 ? "s" : ""}`,
-      detail: `${names(stale)} not updated for over ${STALE_DAYS} days. Funds compound, so the NAV-based value drifts.`,
+      title: `Update ${stale.length} balance${stale.length > 1 ? "s" : ""}`,
+      detail: `${names(stale)} not updated for over ${STALE_DAYS} days. Their running value drifts from the real balance, so refresh it from the statement.`,
     });
   }
 
