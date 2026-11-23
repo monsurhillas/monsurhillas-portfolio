@@ -1,3 +1,4 @@
+import PageHeader from "@/components/admin/ui/PageHeader";
 import { getContent } from "@/lib/get-content";
 import PortfolioEditor from "@/components/admin/PortfolioEditor";
 
@@ -10,14 +11,7 @@ export default async function AdminPortfolioPage() {
 
   return (
     <div>
-      <div className="mb-8">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          Portfolio update
-        </h1>
-        <p className="text-sm text-muted">
-          Edit the content shown on your public profile.
-        </p>
-      </div>
+      <PageHeader title="Portfolio update" description="Edit the content shown on your public profile." />
       <PortfolioEditor content={content} />
     </div>
   );
