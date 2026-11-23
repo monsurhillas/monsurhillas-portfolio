@@ -1,3 +1,4 @@
+import PageHeader from "@/components/admin/ui/PageHeader";
 import { getExpenses } from "@/lib/get-admin-data";
 import ExpensesSection from "@/components/admin/ExpensesSection";
 
@@ -6,14 +7,7 @@ export default async function AdminExpensesPage() {
 
   return (
     <div>
-      <div className="mb-8">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          Expense tracker
-        </h1>
-        <p className="text-sm text-muted">
-          Log your daily spending and see where it&rsquo;s going.
-        </p>
-      </div>
+      <PageHeader title={"Expense tracker"} description={"Log your daily spending and see where it’s going."} />
       <ExpensesSection initialItems={expenses} />
     </div>
   );
