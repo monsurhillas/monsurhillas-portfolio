@@ -17,7 +17,8 @@ export default function NotAuthorized({ email }: { email: string }) {
 
   return (
     <div className="mx-auto flex min-h-[80vh] max-w-md flex-col items-center justify-center px-6 text-center">
-      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-500/10 text-red-500">
+     <div className="card reveal w-full px-8 py-10">
+      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full" style={{ color: "var(--bad)", background: "color-mix(in srgb, var(--bad) 14%, transparent)" }}>
         <ShieldAlert size={22} />
       </div>
       <h1 className="mt-4 text-2xl font-semibold tracking-tight">
@@ -29,10 +30,11 @@ export default function NotAuthorized({ email }: { email: string }) {
       </p>
       <button
         onClick={handleSignOut}
-        className="mt-8 rounded-full border border-border px-5 py-2.5 text-sm font-medium"
+        className="mt-8 rounded-full border border-border px-5 py-2.5 text-sm font-medium transition-colors hover:bg-surface-2"
       >
         Sign out
       </button>
+     </div>
     </div>
   );
 }

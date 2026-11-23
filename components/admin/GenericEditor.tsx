@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { Plus, Save, Trash2, Loader2, ChevronDown } from "lucide-react";
+import { Plus, Save, Trash2, Loader2, ChevronDown, Search, Inbox } from "lucide-react";
 import type { FieldConfig, TableConfig } from "@/lib/admin-fields";
 
 type Row = Record<string, unknown> & { id?: string };
@@ -18,13 +18,25 @@ function fromListString(value: string): string[] {
     .filter(Boolean);
 }
 
-const STATUS_COLORS: Record<string, string> = {
-  Interested: "bg-surface-2 text-muted",
-  Applied: "bg-blue-500/10 text-blue-500",
-  Interview: "bg-amber-500/10 text-amber-500",
-  Offer: "bg-emerald-500/10 text-emerald-500",
-  Rejected: "bg-red-500/10 text-red-500",
+const STATUS_STYLE: Record<string, { color: string; label?: string }> = {
+  Interested: { color: "var(--muted)" },
+  Applied: { color: "var(--series-1)" },
+  Interview: { color: "var(--warn)" },
+  Offer: { color: "var(--good)" },
+  Rejected: { color: "var(--bad)" },
 };
+
+function StatusPill({ status }: { status: string }) {
+  const c = (STATUS_STYLE[status] ?? STATUS_STYLE.Interested).color;
+  return (
+    <span
+      className="shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium"
+      style={{ color: c, background: `color-mix(in srgb, ${c} 14%, transparent)` }}
+    >
+      {status}
+    </span>
+  );
+}
 
 function fieldValueText(item: Row, f?: FieldConfig): string {
   if (!f) return "";
@@ -54,13 +66,18 @@ export default function GenericEditor({
   initialItems,
   supabase,
   onItemsChange,
+  filter,
 }: {
   config: TableConfig;
   initialItems: Row[];
   supabase: SupabaseClient;
   // Lets a parent (e.g. a dashboard) mirror edits made in this list.
   onItemsChange?: (items: Row[]) => void;
+  // Optional extra filter supplied by a parent dashboard (e.g. a status tile).
+  filter?: (item: Row) => boolean;
 }) {
+  const [query, setQuery] = useState("");
+  const [limit, setLimit] = useState(25);
   const [items, setItems] = useState<Row[]>(initialItems);
 
   useEffect(() => {
@@ -172,33 +189,68 @@ export default function GenericEditor({
     setExpanded((prev) => new Set(prev).add(row.id as string));
   }
 
+  const q = query.trim().toLowerCase();
+  const visible = items.filter((it) => {
+    if (filter && !filter(it)) return false;
+    if (!q) return true;
+    const { primary, secondary } = summarize(it, config);
+    return `${primary} ${secondary ?? ""}`.toLowerCase().includes(q);
+  });
+
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-lg font-semibold">{config.title}</h2>
-        <button
-          onClick={handleAdd}
-          className="flex items-center gap-1.5 rounded-full bg-accent px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90"
-        >
-          <Plus size={14} /> Add {config.singular}
-        </button>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-baseline gap-2">
+          <h2 className="text-lg font-semibold tracking-tight">{config.title}</h2>
+          <span className="rounded-full bg-surface-2 px-2 py-0.5 text-xs text-muted">
+            {visible.length === items.length ? items.length : `${visible.length} of ${items.length}`}
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          {items.length > 4 && (
+            <label className="flex items-center gap-2 rounded-full border border-border bg-surface-2 px-3 py-1.5 text-sm text-muted focus-within:border-accent">
+              <Search size={14} />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={`Search ${config.title.toLowerCase()}…`}
+                className="w-40 bg-transparent text-foreground outline-none placeholder:text-faint sm:w-56"
+              />
+            </label>
+          )}
+          <button
+            onClick={handleAdd}
+            className="flex items-center gap-1.5 rounded-full bg-brand px-4 py-2 text-sm font-medium text-white shadow-lg transition hover:brightness-110 active:scale-[0.98]"
+          >
+            <Plus size={14} /> Add {config.singular}
+          </button>
+        </div>
       </div>
 
       {error && (
-        <p className="mb-4 rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-2 text-sm text-red-500">
+        <p className="mb-4 rounded-lg border px-4 py-2 text-sm" style={{ color: "var(--bad)", borderColor: "color-mix(in srgb, var(--bad) 40%, transparent)", background: "color-mix(in srgb, var(--bad) 10%, transparent)" }}>
           {error}
         </p>
       )}
 
       <div className="space-y-2">
-        {items.length === 0 && (
-          <p className="text-sm text-muted">
-            No {config.title.toLowerCase()} yet. Click &ldquo;Add{" "}
-            {config.singular}&rdquo; to create one.
-          </p>
+        {visible.length === 0 && (
+          <div className="card flex flex-col items-center gap-2 px-4 py-10 text-center">
+            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-accent-soft text-accent">
+              <Inbox size={20} />
+            </span>
+            <p className="text-sm font-medium">
+              {items.length === 0 ? `No ${config.title.toLowerCase()} yet` : "Nothing matches"}
+            </p>
+            <p className="text-xs text-muted">
+              {items.length === 0
+                ? `Click “Add ${config.singular}” to create one.`
+                : "Try a different search or clear the filter."}
+            </p>
+          </div>
         )}
 
-        {items.map((item) => {
+        {visible.slice(0, limit).map((item) => {
           const id = item.id as string;
           const d = draftFor(item);
           const saving = savingId === id;
@@ -207,7 +259,7 @@ export default function GenericEditor({
           return (
             <div
               key={id}
-              className="overflow-hidden rounded-xl border border-border bg-surface transition-colors"
+              className="card card-interactive overflow-hidden"
             >
               <div className="flex items-center gap-2 px-4 py-3">
                 <button
@@ -225,15 +277,7 @@ export default function GenericEditor({
                       <span className="truncate text-sm font-medium">
                         {primary}
                       </span>
-                      {config.table === "jobs" && d.status && (
-                        <span
-                          className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${
-                            STATUS_COLORS[d.status] ?? STATUS_COLORS.Interested
-                          }`}
-                        >
-                          {d.status}
-                        </span>
-                      )}
+                      {config.table === "jobs" && d.status && <StatusPill status={d.status} />}
                     </span>
                     {secondary && (
                       <span className="block truncate text-xs text-muted">
@@ -246,7 +290,7 @@ export default function GenericEditor({
                   onClick={() => handleDelete(id)}
                   disabled={saving}
                   title="Delete"
-                  className="shrink-0 rounded-full p-1.5 text-muted hover:bg-red-500/10 hover:text-red-500 disabled:opacity-60"
+                  className="shrink-0 rounded-full p-1.5 text-muted hover:bg-[color-mix(in_srgb,var(--bad)_14%,transparent)] hover:text-[var(--bad)] disabled:opacity-60"
                 >
                   {saving ? (
                     <Loader2 size={14} className="animate-spin" />
@@ -339,7 +383,7 @@ export default function GenericEditor({
                     <button
                       onClick={() => handleSave(item)}
                       disabled={saving}
-                      className="flex items-center gap-1.5 rounded-full bg-accent px-4 py-2 text-xs font-medium text-white disabled:opacity-60"
+                      className="flex items-center gap-1.5 rounded-full bg-brand px-4 py-2 text-xs font-medium text-white disabled:opacity-60"
                     >
                       {saving ? (
                         <Loader2 size={13} className="animate-spin" />
@@ -360,6 +404,15 @@ export default function GenericEditor({
             </div>
           );
         })}
+        {visible.length > limit && (
+          <button
+            type="button"
+            onClick={() => setLimit((l) => l + 25)}
+            className="w-full rounded-xl border border-dashed border-border py-3 text-sm text-muted transition-colors hover:border-accent hover:text-foreground"
+          >
+            Show {Math.min(25, visible.length - limit)} more · {visible.length - limit} hidden
+          </button>
+        )}
       </div>
     </div>
   );
