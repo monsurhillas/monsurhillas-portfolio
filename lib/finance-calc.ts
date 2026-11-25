@@ -80,13 +80,35 @@ export interface Interest {
   net: number;
 }
 
+/**
+ * Banks quote FDR/Sanchaypatra cycles in whole months and pay
+ * principal x rate x months / 12 (a 3-month cycle is exactly a quarter of the
+ * annual rate), not days / 365. A cycle length in days that lands on a whole
+ * month (90 days = 3 months, 180 = 6, 365 = 12) is therefore converted back to
+ * months; anything else falls back to the actual-days convention.
+ */
+export function cycleMonths(days: number): number | null {
+  const months = days / 30.4167;
+  const whole = Math.round(months);
+  return whole >= 1 && Math.abs(months - whole) <= 0.2 ? whole : null;
+}
+
+/** Date a cycle ends, `n` cycles after `from` (month-aligned where possible). */
+export function cycleEnd(from: string, days: number, n = 1): string {
+  const m = cycleMonths(days);
+  return m ? addMonths(from, m * n) : addDays(from, days * n);
+}
+
 export function interestFor(
   base: number,
   ratePct: number,
   days: number,
   taxPct: number
 ): Interest {
-  const gross = (base * (ratePct / 100) * days) / 365;
+  const months = cycleMonths(days);
+  const gross = months
+    ? (base * (ratePct / 100) * months) / 12
+    : (base * (ratePct / 100) * days) / 365;
   const tax = gross * (taxPct / 100);
   return { gross, tax, net: gross - tax };
 }
@@ -114,13 +136,15 @@ export function computeRollovers(
     const days = num(i.renewal_tenor_days);
     if (days <= 0 || i.maturity_date > today) continue;
 
+    // Step from the original maturity date each time (not from the previous
+    // step) so month-end dates don't drift, e.g. 30 Nov -> 28 Feb -> 30 May.
     let maturity = i.maturity_date;
     let lastStart = i.maturity_date;
     let cycles = 0;
     while (maturity <= today && cycles < 400) {
       lastStart = maturity;
-      maturity = addDays(maturity, days);
       cycles += 1;
+      maturity = cycleEnd(i.maturity_date, days, cycles);
     }
     out.push({
       id: i.id,
@@ -214,8 +238,8 @@ export function buildInterestEvents(
           });
         }
         if (!i.auto_renew) break;
-        date = addDays(date, days);
         n += 1;
+        date = cycleEnd(i.maturity_date, days, n);
       }
     }
 
