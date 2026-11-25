@@ -107,7 +107,7 @@ export default function MaturityList({
         </div>
       )}
       <p className="mt-4 text-xs text-muted">
-        Interest = principal × rate × days ÷ 365, minus source tax (10% with
+        Interest = principal × rate × months ÷ 12 (a 3-month FDR pays a quarter of the annual rate), minus source tax (10% with
         TIN on FDR interest and on Sanchaypatra above Tk 5 lakh). Estimates
         only — the bank&rsquo;s statement is authoritative.
       </p>
