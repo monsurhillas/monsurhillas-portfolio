@@ -2,6 +2,7 @@
 
 import { X, RefreshCw, ShieldAlert } from "lucide-react";
 import Card from "../ui/Card";
+import InstitutionLogo from "../ui/InstitutionLogo";
 import { formatBDT, typeColor } from "@/lib/chart-colors";
 import type { HoldingRow } from "@/lib/finance-analytics";
 
@@ -42,6 +43,7 @@ export default function DrillDown({
           <div key={r.id} className="grid items-center gap-x-4 gap-y-1 py-2.5 sm:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_auto]">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2 text-sm font-medium">
+                <InstitutionLogo name={r.item.institution} size={24} />
                 <span className="truncate">
                   {r.name} <span className="text-faint">{r.ref}</span>
                 </span>

@@ -1,5 +1,6 @@
 import { RefreshCw, ShieldAlert } from "lucide-react";
 import { formatBDT } from "@/lib/chart-colors";
+import InstitutionLogo from "../ui/InstitutionLogo";
 import {
   addDays,
   addMonths,
@@ -61,7 +62,9 @@ export default function MaturityList({
                 key={`${i.id}-${date}`}
                 className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3 last:border-0 last:pb-0"
               >
-                <div className="min-w-0">
+                <div className="flex min-w-0 items-center gap-2.5">
+                  <InstitutionLogo name={i.institution} size={30} />
+                  <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2 text-sm font-medium">
                     {instrumentLabel(i)} · {i.type}
                     {i.needs_rate_update && (
@@ -79,6 +82,7 @@ export default function MaturityList({
                     {date} · {left === 0 ? "today" : `in ${left} day${left === 1 ? "" : "s"}`}{" "}
                     · {Number(i.interest_rate).toFixed(2)}%/yr on{" "}
                     {formatBDT(event?.base ?? Number(i.current_value))}
+                  </div>
                   </div>
                 </div>
                 <div className="text-right text-sm">

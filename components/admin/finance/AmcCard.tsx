@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { Clock } from "lucide-react";
 import Card from "../ui/Card";
+import InstitutionLogo from "../ui/InstitutionLogo";
 import PercentBar from "../PercentBar";
 import { colorForIndex, formatBDT } from "@/lib/chart-colors";
 import { daysBetween } from "@/lib/finance-calc";
@@ -49,7 +50,9 @@ export default function AmcCard({
           return (
             <div key={r.amc} className="space-y-1.5">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="min-w-0">
+                <div className="flex min-w-0 items-center gap-2.5">
+                  <InstitutionLogo name={r.amc} size={34} />
+                  <div className="min-w-0">
                   <div className="truncate text-sm font-medium">{r.amc}</div>
                   <div className="flex items-center gap-2 text-xs text-muted">
                     Invested {formatBDT(r.invested)}
@@ -63,6 +66,7 @@ export default function AmcCard({
                       <Clock size={9} />
                       {r.age <= 0 ? "updated today" : `updated ${r.age}d ago`}
                     </span>
+                  </div>
                   </div>
                 </div>
                 <div className="text-right">

@@ -13,16 +13,29 @@ import {
 import Card from "../ui/Card";
 import ChartTooltip, { type TooltipEntry } from "../ui/ChartTooltip";
 import { formatBDT, formatCompactBDT } from "@/lib/chart-colors";
+import { hueFor, initialsFor, logoKeyFor } from "@/lib/institution-logos";
 import { DEPOSIT_INSURANCE_LIMIT, type InstitutionExposure } from "@/lib/finance-calc";
 
-// Single-line category tick (recharts' default wraps long bank names).
+// Category tick: bank mark + single-line name (recharts' default wraps long names).
 function NameTick(props: { x?: number; y?: number; payload?: { value: string } }) {
   const { x = 0, y = 0, payload } = props;
   const v = payload?.value ?? "";
+  const key = logoKeyFor(v);
+  const hue = hueFor(v);
   return (
-    <text x={x - 6} y={y} textAnchor="end" dominantBaseline="central" fill="var(--foreground)" fontSize={12}>
-      {v.length > 19 ? `${v.slice(0, 18)}…` : v}
-    </text>
+    <g>
+      <rect x={x - 152} y={y - 11} width={22} height={22} rx={6} fill={key ? "#fff" : `hsl(${hue} 70% 92%)`} stroke="var(--border)" />
+      {key ? (
+        <image href={`/logos/${key}.png`} x={x - 150} y={y - 9} width={18} height={18} preserveAspectRatio="xMidYMid meet" />
+      ) : (
+        <text x={x - 141} y={y} textAnchor="middle" dominantBaseline="central" fontSize={9} fontWeight={600} fill={`hsl(${hue} 55% 30%)`}>
+          {initialsFor(v)}
+        </text>
+      )}
+      <text x={x - 6} y={y} textAnchor="end" dominantBaseline="central" fill="var(--foreground)" fontSize={12}>
+        {v.length > 14 ? `${v.slice(0, 13)}…` : v}
+      </text>
+    </g>
   );
 }
 
@@ -54,7 +67,7 @@ export default function ExposureCard({
             <YAxis
               type="category"
               dataKey="institution"
-              width={132}
+              width={156}
               axisLine={false}
               tickLine={false}
               tick={<NameTick />}

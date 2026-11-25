@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { BadgeCheck, Loader2 } from "lucide-react";
 import { formatBDT } from "@/lib/chart-colors";
+import InstitutionLogo from "../ui/InstitutionLogo";
 import { instrumentLabel } from "@/lib/finance-calc";
 import type { FinancialInstrument } from "@/lib/types";
 
@@ -61,7 +62,9 @@ export default function RateQueue({
             key={i.id}
             className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-surface px-4 py-3"
           >
-            <div className="min-w-0">
+            <div className="flex min-w-0 items-center gap-2.5">
+              <InstitutionLogo name={i.institution} size={30} />
+              <div className="min-w-0">
               <div className="truncate text-sm font-medium">
                 {instrumentLabel(i)}
               </div>
@@ -69,6 +72,7 @@ export default function RateQueue({
                 {formatBDT(Number(i.principal_amount))} · renewed{" "}
                 {i.last_renewed_at ?? "—"} · now matures {i.maturity_date}
                 {i.renewal_count > 0 && ` · renewal #${i.renewal_count}`}
+              </div>
               </div>
             </div>
             <div className="flex items-center gap-2">

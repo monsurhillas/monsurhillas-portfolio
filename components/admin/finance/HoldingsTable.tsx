@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import Card from "../ui/Card";
 import EmptyState from "../ui/EmptyState";
+import InstitutionLogo from "../ui/InstitutionLogo";
 import { formatBDT, typeColor } from "@/lib/chart-colors";
 import { toCsv, type HoldingRow } from "@/lib/finance-analytics";
 
@@ -142,6 +143,7 @@ export default function HoldingsTable({ rows }: { rows: HoldingRow[] }) {
                       <td className="px-3 py-3">
                         <div className="flex items-center gap-2.5">
                           <span className="h-8 w-1 shrink-0 rounded-full" style={{ background: typeColor(r.type) }} />
+                          <InstitutionLogo name={r.item.institution} size={30} />
                           <div className="min-w-0">
                             <div className="truncate font-medium">
                               {r.name} <span className="text-faint">{r.ref}</span>
